@@ -8,23 +8,24 @@ enum State {
     Csi,
 }
 
-fn write_with_strip(graph_end: &mut bool, b: u8) {
+fn print_stripped(graph_end: &mut bool, ch: char) {
     if *graph_end == false {
-        if b >= '0' as u8 && b <= '9' as u8 {
-            *graph_end = true;
-        } else if b >= 'a' as u8 && b <= 'f' as u8 {
-            *graph_end = true;
-        }
+        *graph_end = ch.is_digit(16)
     }
     if *graph_end == true {
-        print!("{}", b as char);
+        print!("{}", ch);
+        return;
     }
 }
 
 fn main() {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
-        let line_data = line.unwrap();
+        let line_data;
+        match line {
+            Ok(data) => line_data = data,
+            Err(_) => continue
+        }
         let mut state = State::Normal;
         let mut graph_end = false;
         for b in line_data.bytes() {
@@ -36,7 +37,7 @@ fn main() {
                             print!("{}", b as char);
                         }
                     } else {
-                        write_with_strip(&mut graph_end, b);
+                        print_stripped(&mut graph_end, b as char);
                     }
                 },
                 State::Escape => {
