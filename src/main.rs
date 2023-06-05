@@ -28,23 +28,23 @@ fn main() {
         }
         let mut state = State::Normal;
         let mut graph_end = false;
-        for b in line_data.bytes() {
+        for c in line_data.chars() {
             match &state {
                 State::Normal => {
-                    if b == 0x1B { // ESC
+                    if c == 0x1B as char { // ESC
                         state = State::Escape;
                         if !STRIP_COLOR {
-                            print!("{}", b as char);
+                            print!("{}", c);
                         }
                     } else {
-                        print_stripped(&mut graph_end, b as char);
+                        print_stripped(&mut graph_end, c);
                     }
                 },
                 State::Escape => {
                     if !STRIP_COLOR {
-                        print!("{}", b as char);
+                        print!("{}", c);
                     }
-                    if b == 0x5B { // [
+                    if c == 0x5B as char { // [
                         state = State::Csi;
                     } else {
                         state = State::Normal;
@@ -52,9 +52,9 @@ fn main() {
                 },
                 State::Csi => {
                     if !STRIP_COLOR {
-                        print!("{}", b as char);
+                        print!("{}", c);
                     }
-                    if b >= 0x40 && b < 0x80 {
+                    if c >= 0x40 as char && c < 0x80 as char {
                         state = State::Normal;
                     }
                 },
