@@ -1,4 +1,5 @@
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
+use std::process;
 
 const STRIP_COLOR: bool = true;
 
@@ -8,17 +9,18 @@ enum State {
     Csi,
 }
 
-fn print_stripped(graph_end: &mut bool, ch: char) {
+fn write_stripped(stdout: &mut dyn Write, graph_end: &mut bool, ch: char) -> io::Result<()>  {
     if *graph_end == false {
         *graph_end = ch.is_digit(16)
     }
     if *graph_end == true {
-        print!("{}", ch);
-        return;
+        write!(stdout, "{}", ch)?;
     }
+    Ok(())
 }
 
 fn main() {
+    let mut stdout = io::stdout();
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let line_data;
@@ -29,20 +31,21 @@ fn main() {
         let mut state = State::Normal;
         let mut graph_end = false;
         for c in line_data.chars() {
+            let mut res = Ok(());
             match &state {
                 State::Normal => {
                     if c == 0x1B as char { // ESC
                         state = State::Escape;
                         if !STRIP_COLOR {
-                            print!("{}", c);
+                            res = write!(stdout, "{}", c);
                         }
                     } else {
-                        print_stripped(&mut graph_end, c);
+                        res = write_stripped(&mut stdout, &mut graph_end, c);
                     }
                 },
                 State::Escape => {
                     if !STRIP_COLOR {
-                        print!("{}", c);
+                        res = write!(stdout, "{}", c);
                     }
                     if c == 0x5B as char { // [
                         state = State::Csi;
@@ -52,14 +55,19 @@ fn main() {
                 },
                 State::Csi => {
                     if !STRIP_COLOR {
-                        print!("{}", c);
+                        res = write!(stdout, "{}", c);
                     }
                     if c >= 0x40 as char && c < 0x80 as char {
                         state = State::Normal;
                     }
                 },
             }
+            if let Err(_) = res {
+                process::exit(1);
+            }
         }
-        println!();
+        if let Err(_) = writeln!(stdout) {
+            process::exit(1);
+        }
     }
 }
